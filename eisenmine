@@ -1,13 +1,11 @@
 -- =====================================
 -- FTB EVOLUTION STRIP MINER (PRO FINAL)
--- 3x3 Haupttunnel
--- 3x3 Seitengänge
--- 2 Blöcke Abstand zwischen Seitengängen
+-- Fuel-Kiste HINTER der Turtle
 -- =====================================
 
 local MAIN_LEN = 200
 local STRIP_LEN = 20
-local STRIP_GAP = 5   -- <<< WICHTIG: 3 Breite + 2 Abstand
+local STRIP_GAP = 5      -- 3x3 Gang + 2 Blöcke Abstand
 local MIN_FUEL = 1000
 
 -- ===== MÜLL =====
@@ -25,8 +23,8 @@ local junk = {
 }
 
 -- ===== POSITION =====
-local pos = { x=0, y=0, z=0, dir=0 }
 -- dir: 0=N, 1=E, 2=S, 3=W
+local pos = { x=0, y=0, z=0, dir=0 }
 
 -- ===== BASIS =====
 local function turnLeft()
@@ -100,18 +98,31 @@ local function dumpInventory()
   for i=1,16 do turtle.select(i); turtle.dropDown() end
 end
 
--- ===== FUEL =====
+-- ===== FUEL (HINTEN!) =====
 local function ensureFuel()
-  if turtle.getFuelLevel()<MIN_FUEL then
+  if turtle.getFuelLevel() < MIN_FUEL then
     goHome()
+
+    -- umdrehen → Fuel-Kiste hinten
     turnLeft()
-    if not turtle.suck(64) then error("KEIN FUEL IN KISTE") end
-    turnRight()
-    for i=1,16 do turtle.select(i); turtle.refuel() end
+    turnLeft()
+
+    if not turtle.suck(64) then
+      error("❌ KEIN FUEL IN DER FUEL-KISTE!")
+    end
+
+    -- wieder nach vorne
+    turnLeft()
+    turnLeft()
+
+    for i=1,16 do
+      turtle.select(i)
+      turtle.refuel()
+    end
   end
 end
 
--- ===== NOTFALL =====
+-- ===== NOTFALL-LEEREN =====
 local function emergencyDump()
   local save={x=pos.x,y=pos.y,z=pos.z,dir=pos.dir}
   goHome()
@@ -149,7 +160,7 @@ local function digStrip()
 end
 
 -- ===== START =====
-print("Profi Strip Miner FINAL gestartet ⛏️")
+print("Profi Strip Miner gestartet ⛏️")
 
 local mainSteps=0
 
