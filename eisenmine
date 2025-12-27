@@ -1,16 +1,14 @@
--- =========================
--- FTB EVOLUTION STRIP MINER (FINAL STABLE)
--- 3x3 Haupttunnel
--- 3x3 Seitenschächte (20)
--- Müll wird IMMER sofort gedroppt
--- =========================
+-- =====================================
+-- FTB EVOLUTION STRIP MINER (PRO VERSION)
+-- Positions-Tracking + sichere Rückkehr
+-- =====================================
 
-local TUNNEL_LAENGE = 200
-local STRIP_LAENGE = 20
-local STRIP_ABSTAND = 3
-local MIN_FUEL = 800
+local TUNNEL_LEN = 200
+local STRIP_LEN = 20
+local STRIP_SPACING = 3
+local MIN_FUEL = 1000
 
--- ===== MÜLL =====
+-- Müll (alles andere bleibt)
 local junk = {
   ["minecraft:cobblestone"] = true,
   ["minecraft:cobbled_deepslate"] = true,
@@ -24,22 +22,56 @@ local junk = {
   ["minecraft:clay_ball"] = true
 }
 
-local steps = 0
+-- Position & Richtung
+-- dir: 0=north, 1=east, 2=south, 3=west
+local pos = { x = 0, y = 0, z = 0, dir = 0 }
 
--- ===== BASIC DIG =====
-local function digForward()
-  while turtle.detect() do turtle.dig() sleep(0.05) end
+-- ========= BEWEGUNG =========
+local function turnLeft()
+  turtle.turnLeft()
+  pos.dir = (pos.dir + 3) % 4
 end
 
-local function digUp()
-  while turtle.detectUp() do turtle.digUp() sleep(0.05) end
+local function turnRight()
+  turtle.turnRight()
+  pos.dir = (pos.dir + 1) % 4
 end
 
-local function digDown()
-  while turtle.detectDown() do turtle.digDown() sleep(0.05) end
+local function forward()
+  while not turtle.forward() do
+    turtle.dig()
+    sleep(0.05)
+  end
+  if pos.dir == 0 then pos.z = pos.z - 1
+  elseif pos.dir == 1 then pos.x = pos.x + 1
+  elseif pos.dir == 2 then pos.z = pos.z + 1
+  elseif pos.dir == 3 then pos.x = pos.x - 1 end
 end
 
--- ===== INVENTAR =====
+local function up()
+  turtle.up()
+  pos.y = pos.y + 1
+end
+
+local function down()
+  turtle.down()
+  pos.y = pos.y - 1
+end
+
+-- ========= GRABEN =========
+local function digForward() while turtle.detect() do turtle.dig() sleep(0.05) end end
+local function digUp() while turtle.detectUp() do turtle.digUp() sleep(0.05) end end
+local function digDown() while turtle.detectDown() do turtle.digDown() sleep(0.05) end end
+
+-- ========= INVENTAR =========
+local function dropJunk()
+  for i = 1, 16 do
+    turtle.select(i)
+    local it = turtle.getItemDetail()
+    if it and junk[it.name] then turtle.dropDown() end
+  end
+end
+
 local function inventoryFull()
   for i = 1, 16 do
     if turtle.getItemCount(i) == 0 then return false end
@@ -47,38 +79,47 @@ local function inventoryFull()
   return true
 end
 
--- Müll SOFORT nach unten droppen
-local function dropJunkDown()
-  for i = 1, 16 do
-    turtle.select(i)
-    local item = turtle.getItemDetail()
-    if item and junk[item.name] then
-      turtle.dropDown()
+-- ========= BASE =========
+local function goTo(x, y, z)
+  while pos.y > y do down() end
+  while pos.y < y do up() end
+
+  while pos.x ~= x do
+    if pos.x < x then
+      while pos.dir ~= 1 do turnRight() end
+    else
+      while pos.dir ~= 3 do turnRight() end
     end
+    forward()
+  end
+
+  while pos.z ~= z do
+    if pos.z < z then
+      while pos.dir ~= 2 do turnRight() end
+    else
+      while pos.dir ~= 0 do turnRight() end
+    end
+    forward()
   end
 end
 
--- ===== BASE =====
 local function goHome()
-  turtle.turnLeft()
-  turtle.turnLeft()
-  for i = 1, steps do turtle.forward() end
-  turtle.turnLeft()
-  turtle.turnLeft()
+  goTo(0, 0, 0)
+  while pos.dir ~= 0 do turnRight() end
 end
 
-local function dumpInventoryDown()
+local function dumpInventory()
   for i = 1, 16 do
     turtle.select(i)
     turtle.dropDown()
   end
 end
 
--- ===== FUEL =====
+-- ========= FUEL =========
 local function refuel()
-  turtle.turnLeft()
+  turnLeft()
   turtle.suck(64)
-  turtle.turnRight()
+  turnRight()
   for i = 1, 16 do
     turtle.select(i)
     turtle.refuel()
@@ -87,86 +128,79 @@ end
 
 local function ensureFuel()
   if turtle.getFuelLevel() < MIN_FUEL then
-    print("Fuel niedrig – Base")
     goHome()
     refuel()
   end
 end
 
--- ===== 3x3 SCHRITT =====
-local function dig3x3Step(allowDown)
+-- ========= 3x3 SCHRITT =========
+local function dig3x3Step()
   digForward()
-  turtle.forward()
-  digUp()
-  if allowDown then digDown() end
-  dropJunkDown()
-
-  -- links
-  turtle.turnLeft()
-  digForward()
-  turtle.forward()
+  forward()
   digUp()
   digDown()
-  dropJunkDown()
-  turtle.back()
-  turtle.turnRight()
+  dropJunk()
 
-  -- rechts
-  turtle.turnRight()
+  turnLeft()
   digForward()
-  turtle.forward()
+  forward()
   digUp()
   digDown()
-  dropJunkDown()
+  dropJunk()
   turtle.back()
-  turtle.turnLeft()
+  if pos.dir == 1 then pos.x = pos.x - 1
+  elseif pos.dir == 3 then pos.x = pos.x + 1
+  elseif pos.dir == 0 then pos.z = pos.z + 1
+  elseif pos.dir == 2 then pos.z = pos.z - 1 end
+  turnRight()
+
+  turnRight()
+  digForward()
+  forward()
+  digUp()
+  digDown()
+  dropJunk()
+  turtle.back()
+  if pos.dir == 1 then pos.x = pos.x - 1
+  elseif pos.dir == 3 then pos.x = pos.x + 1
+  elseif pos.dir == 0 then pos.z = pos.z + 1
+  elseif pos.dir == 2 then pos.z = pos.z - 1 end
+  turnLeft()
 end
 
--- ===== 3x3 STRIP =====
-local function dig3x3Strip(length)
-  for i = 1, length do
-    dig3x3Step(true)
-
-    if inventoryFull() then
-      print("Inventar voll – Base")
-      goHome()
-      dumpInventoryDown()
-    end
+-- ========= STRIP =========
+local function digStrip()
+  for i = 1, STRIP_LEN do
+    dig3x3Step()
+    ensureFuel()
   end
-
-  turtle.turnLeft()
-  turtle.turnLeft()
-  for i = 1, length do turtle.forward() end
-  turtle.turnLeft()
-  turtle.turnLeft()
 end
 
--- ===== START =====
-print("FTB Evolution Strip Mining gestartet ⛏️")
+-- ========= START =========
+print("Profi-Strip-Miner gestartet ⛏️")
 
-for i = 1, TUNNEL_LAENGE do
-  dig3x3Step(steps > 0)
-  steps = steps + 1
-
+for i = 1, TUNNEL_LEN do
+  dig3x3Step()
   ensureFuel()
 
   if inventoryFull() then
-    print("Inventar voll – Base")
     goHome()
-    dumpInventoryDown()
+    dumpInventory()
   end
 
-  if steps % STRIP_ABSTAND == 0 then
-    turtle.turnLeft()
-    dig3x3Strip(STRIP_LAENGE)
-    turtle.turnRight()
+  if i % STRIP_SPACING == 0 then
+    turnLeft()
+    digStrip()
+    goTo(0, pos.y, pos.z)
+    while pos.dir ~= 0 do turnRight() end
 
-    turtle.turnRight()
-    dig3x3Strip(STRIP_LAENGE)
-    turtle.turnLeft()
+    turnRight()
+    digStrip()
+    goTo(0, pos.y, pos.z)
+    while pos.dir ~= 0 do turnRight() end
   end
 end
 
 goHome()
-dumpInventoryDown()
+dumpInventory()
 print("Strip-Mining fertig ✅")
