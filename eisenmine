@@ -1,12 +1,14 @@
 -- =========================
--- FTB EVOLUTION 3x3 MINER
--- behält ALLE ERZE & MOD-ITEMS
+-- FTB EVOLUTION STRIP MINER
+-- Haupttunnel 200 | Strips 20
 -- =========================
 
 local TUNNEL_LAENGE = 200
-local MIN_FUEL = 200
+local STRIP_LAENGE = 20
+local STRIP_ABSTAND = 3
+local MIN_FUEL = 600
 
--- ===== MÜLL-LISTE (NUR DAS WIRD GEDROPPT) =====
+-- ===== NUR MÜLL (ALLES ANDERE BLEIBT) =====
 local junk = {
   ["minecraft:cobblestone"] = true,
   ["minecraft:cobbled_deepslate"] = true,
@@ -20,53 +22,63 @@ local junk = {
 
 local steps = 0
 
--- ===== GRABEN =====
+-- ===== BASIC DIG =====
 local function digForward()
-  while turtle.detect() do turtle.dig() sleep(0.1) end
+  while turtle.detect() do turtle.dig() sleep(0.05) end
 end
 
 local function digUp()
-  while turtle.detectUp() do turtle.digUp() sleep(0.1) end
+  while turtle.detectUp() do turtle.digUp() sleep(0.05) end
 end
 
-local function digDownSafe()
-  while turtle.detectDown() do turtle.digDown() sleep(0.1) end
+local function digDown()
+  while turtle.detectDown() do turtle.digDown() sleep(0.05) end
 end
 
-local function digSide(turn)
-  turn()
+-- ===== 3x3 HAUPTTUNNEL =====
+local function dig3x3Step()
   digForward()
   turtle.forward()
   digUp()
-  digDownSafe()
+  if steps > 0 then digDown() end
+
+  -- links
+  turtle.turnLeft()
+  digForward()
+  turtle.forward()
+  digUp()
+  digDown()
   turtle.back()
-  if turn == turtle.turnLeft then turtle.turnRight() else turtle.turnLeft() end
-end
+  turtle.turnRight()
 
--- ===== 3x3 SCHRITT =====
-local function mine3x3Step()
+  -- rechts
+  turtle.turnRight()
   digForward()
   turtle.forward()
   digUp()
-
-  -- Base schützen
-  if steps > 0 then digDownSafe() end
-
-  digSide(turtle.turnLeft)
-  digSide(turtle.turnRight)
+  digDown()
+  turtle.back()
+  turtle.turnLeft()
 
   steps = steps + 1
 end
 
--- ===== INVENTAR =====
-local function inventoryFull()
-  for i = 1, 16 do
-    if turtle.getItemCount(i) == 0 then return false end
+-- ===== STRIP (1x2) =====
+local function digStrip(length)
+  for i = 1, length do
+    digForward()
+    turtle.forward()
+    digUp()
   end
-  return true
+
+  turtle.turnLeft()
+  turtle.turnLeft()
+  for i = 1, length do turtle.forward() end
+  turtle.turnLeft()
+  turtle.turnLeft()
 end
 
--- nur Müll wegwerfen
+-- ===== INVENTAR =====
 local function dropJunk()
   for i = 1, 16 do
     turtle.select(i)
@@ -75,6 +87,13 @@ local function dropJunk()
       turtle.drop()
     end
   end
+end
+
+local function inventoryFull()
+  for i = 1, 16 do
+    if turtle.getItemCount(i) == 0 then return false end
+  end
+  return true
 end
 
 -- ===== BASE =====
@@ -94,7 +113,7 @@ local function dumpInventoryDown()
 end
 
 -- ===== FUEL =====
-local function refuelFromChest()
+local function refuel()
   turtle.turnLeft()
   turtle.suck(64)
   turtle.turnRight()
@@ -106,19 +125,31 @@ end
 
 local function ensureFuel()
   if turtle.getFuelLevel() < MIN_FUEL then
-    print("Fuel niedrig – tanke")
+    print("Fuel niedrig – zurück zur Base")
     goHome()
-    refuelFromChest()
+    refuel()
   end
 end
 
 -- ===== START =====
-print("FTB Evolution 3x3 Miner gestartet ⛏️")
+print("FTB Evolution Strip-Mining gestartet ⛏️")
 
 for i = 1, TUNNEL_LAENGE do
-  mine3x3Step()
+  dig3x3Step()
   dropJunk()
   ensureFuel()
+
+  if steps % STRIP_ABSTAND == 0 then
+    -- links
+    turtle.turnLeft()
+    digStrip(STRIP_LAENGE)
+    turtle.turnRight()
+
+    -- rechts
+    turtle.turnRight()
+    digStrip(STRIP_LAENGE)
+    turtle.turnLeft()
+  end
 
   if inventoryFull() then
     print("Inventar voll – Base")
@@ -129,4 +160,4 @@ end
 
 goHome()
 dumpInventoryDown()
-print("Fertig ✅")
+print("Strip-Mining fertig ✅")
