@@ -1,0 +1,117 @@
+eisen_auto.lua
+-- =========================
+-- EISEN-TUNNEL TURTLE AUTO (FIXED)
+-- =========================
+
+local TUNNEL_LAENGE = 200
+local MIN_FUEL = 200
+
+-- Erz-Liste
+local ores = {
+  ["minecraft:iron_ore"] = true,
+  ["minecraft:deepslate_iron_ore"] = true,
+  ["minecraft:gold_ore"] = true,
+  ["minecraft:deepslate_gold_ore"] = true,
+  ["minecraft:copper_ore"] = true,
+  ["minecraft:deepslate_copper_ore"] = true,
+  ["minecraft:coal_ore"] = true,
+  ["minecraft:deepslate_coal_ore"] = true,
+  ["minecraft:redstone_ore"] = true,
+  ["minecraft:deepslate_redstone_ore"] = true,
+  ["minecraft:lapis_ore"] = true,
+  ["minecraft:deepslate_lapis_ore"] = true,
+  ["minecraft:diamond_ore"] = true,
+  ["minecraft:deepslate_diamond_ore"] = true,
+  ["minecraft:emerald_ore"] = true,
+  ["minecraft:deepslate_emerald_ore"] = true
+}
+
+local steps = 0
+
+-- ===== GRABEN (SICHER) =====
+local function digForward()
+  while turtle.detect() do
+    turtle.dig()
+    sleep(0.1)
+  end
+end
+
+local function digUpSafe()
+  while turtle.detectUp() do
+    turtle.digUp()
+    sleep(0.1)
+  end
+end
+
+local function forward()
+  digForward()
+  turtle.forward()
+  digUpSafe()
+  steps = steps + 1
+end
+
+-- ===== INVENTAR =====
+local function inventoryFull()
+  for i = 1, 16 do
+    if turtle.getItemCount(i) == 0 then return false end
+  end
+  return true
+end
+
+-- ===== BASE =====
+local function goHome()
+  turtle.turnLeft()
+  turtle.turnLeft()
+  for i = 1, steps do
+    turtle.forward()
+  end
+  turtle.turnLeft()
+  turtle.turnLeft()
+end
+
+local function dumpOres()
+  for i = 1, 16 do
+    turtle.select(i)
+    local item = turtle.getItemDetail()
+    if item and ores[item.name] then
+      turtle.dropDown()
+    end
+  end
+end
+
+local function refuelFromChest()
+  turtle.turnLeft()
+  turtle.suck(64)
+  turtle.turnRight()
+
+  for i = 1, 16 do
+    turtle.select(i)
+    turtle.refuel()
+  end
+end
+
+local function ensureFuel()
+  if turtle.getFuelLevel() < MIN_FUEL then
+    print("Fuel niedrig – tanke")
+    goHome()
+    refuelFromChest()
+  end
+end
+
+-- ===== START =====
+print("Starte Eisen-Tunnel ⛏️")
+
+for i = 1, TUNNEL_LAENGE do
+  forward()
+  ensureFuel()
+
+  if inventoryFull() then
+    print("Inventar voll – Base")
+    goHome()
+    dumpOres()
+  end
+end
+
+goHome()
+dumpOres()
+print("Fertig ✅")
