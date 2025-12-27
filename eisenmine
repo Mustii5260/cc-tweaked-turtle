@@ -1,12 +1,13 @@
 -- =========================
 -- FTB EVOLUTION STRIP MINER
--- Haupttunnel 200 | Strips 20
+-- 3x3 Haupttunnel
+-- 3x3 Seitenschächte (20)
 -- =========================
 
 local TUNNEL_LAENGE = 200
 local STRIP_LAENGE = 20
 local STRIP_ABSTAND = 3
-local MIN_FUEL = 600
+local MIN_FUEL = 800
 
 -- ===== NUR MÜLL (ALLES ANDERE BLEIBT) =====
 local junk = {
@@ -35,12 +36,12 @@ local function digDown()
   while turtle.detectDown() do turtle.digDown() sleep(0.05) end
 end
 
--- ===== 3x3 HAUPTTUNNEL =====
-local function dig3x3Step()
+-- ===== 3x3 SCHRITT (WIEDERVERWENDBAR) =====
+local function dig3x3Step(allowDown)
   digForward()
   turtle.forward()
   digUp()
-  if steps > 0 then digDown() end
+  if allowDown then digDown() end
 
   -- links
   turtle.turnLeft()
@@ -59,18 +60,15 @@ local function dig3x3Step()
   digDown()
   turtle.back()
   turtle.turnLeft()
-
-  steps = steps + 1
 end
 
--- ===== STRIP (1x2) =====
-local function digStrip(length)
+-- ===== 3x3 STRIP =====
+local function dig3x3Strip(length)
   for i = 1, length do
-    digForward()
-    turtle.forward()
-    digUp()
+    dig3x3Step(true)
   end
 
+  -- zurück zum Haupttunnel
   turtle.turnLeft()
   turtle.turnLeft()
   for i = 1, length do turtle.forward() end
@@ -117,47 +115,4 @@ local function refuel()
   turtle.turnLeft()
   turtle.suck(64)
   turtle.turnRight()
-  for i = 1, 16 do
-    turtle.select(i)
-    turtle.refuel()
-  end
-end
-
-local function ensureFuel()
-  if turtle.getFuelLevel() < MIN_FUEL then
-    print("Fuel niedrig – zurück zur Base")
-    goHome()
-    refuel()
-  end
-end
-
--- ===== START =====
-print("FTB Evolution Strip-Mining gestartet ⛏️")
-
-for i = 1, TUNNEL_LAENGE do
-  dig3x3Step()
-  dropJunk()
-  ensureFuel()
-
-  if steps % STRIP_ABSTAND == 0 then
-    -- links
-    turtle.turnLeft()
-    digStrip(STRIP_LAENGE)
-    turtle.turnRight()
-
-    -- rechts
-    turtle.turnRight()
-    digStrip(STRIP_LAENGE)
-    turtle.turnLeft()
-  end
-
-  if inventoryFull() then
-    print("Inventar voll – Base")
-    goHome()
-    dumpInventoryDown()
-  end
-end
-
-goHome()
-dumpInventoryDown()
-print("Strip-Mining fertig ✅")
+  f
