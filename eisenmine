@@ -1,12 +1,12 @@
 -- =========================
--- EISEN-TUNNEL TURTLE AUTO
+-- EISEN-TUNNEL TURTLE AUTO 3x3
 -- CC: Tweaked
 -- =========================
 
 local TUNNEL_LAENGE = 200
 local MIN_FUEL = 200
 
--- Erz-Liste
+-- ===== ERZ-LISTE =====
 local ores = {
   ["minecraft:iron_ore"] = true,
   ["minecraft:deepslate_iron_ore"] = true,
@@ -28,36 +28,61 @@ local ores = {
 
 local steps = 0
 
--- ===== GRABEN (SICHER) =====
+-- ===== GRABEN =====
 local function digForward()
-  while turtle.detect() do
-    turtle.dig()
-    sleep(0.1)
-  end
+  while turtle.detect() do turtle.dig() sleep(0.1) end
 end
 
-local function digUpSafe()
-  while turtle.detectUp() do
-    turtle.digUp()
-    sleep(0.1)
-  end
+local function digUp()
+  while turtle.detectUp() do turtle.digUp() sleep(0.1) end
 end
 
-local function forward()
+local function digSide(turnFunc)
+  turnFunc()
   digForward()
   turtle.forward()
-  digUpSafe()
+  digUp()
+  turtle.back()
+  if turnFunc == turtle.turnLeft then
+    turtle.turnRight()
+  else
+    turtle.turnLeft()
+  end
+end
+
+-- ===== 3x3 SCHRITT =====
+local function mine3x3Step()
+  -- Mitte
+  digForward()
+  turtle.forward()
+  digUp()
+
+  -- Links
+  digSide(turtle.turnLeft)
+
+  -- Rechts
+  digSide(turtle.turnRight)
+
   steps = steps + 1
 end
 
 -- ===== INVENTAR =====
 local function inventoryFull()
   for i = 1, 16 do
-    if turtle.getItemCount(i) == 0 then
-      return false
-    end
+    if turtle.getItemCount(i) == 0 then return false end
   end
   return true
+end
+
+-- wirft alles weg, was KEIN Erz ist
+local function dropNonOres()
+  for i = 1, 16 do
+    turtle.select(i)
+    local item = turtle.getItemDetail()
+    if item and not ores[item.name] then
+      turtle.drop()
+    end
+  end
 end
 
 -- ===== BASE =====
@@ -71,16 +96,14 @@ local function goHome()
   turtle.turnLeft()
 end
 
-local function dumpOres()
+local function dumpInventoryDown()
   for i = 1, 16 do
     turtle.select(i)
-    local item = turtle.getItemDetail()
-    if item and ores[item.name] then
-      turtle.dropDown()
-    end
+    turtle.dropDown()
   end
 end
 
+-- ===== FUEL =====
 local function refuelFromChest()
   turtle.turnLeft()
   turtle.suck(64)
@@ -101,20 +124,20 @@ local function ensureFuel()
 end
 
 -- ===== START =====
-print("Starte Eisen-Tunnel ⛏️")
+print("Starte 3x3 Eisen-Tunnel ⛏️")
 
 for i = 1, TUNNEL_LAENGE do
-  forward()
+  mine3x3Step()
+  dropNonOres()
   ensureFuel()
 
   if inventoryFull() then
     print("Inventar voll – Base")
     goHome()
-    dumpOres()
+    dumpInventoryDown()
   end
 end
 
 goHome()
-dumpOres()
+dumpInventoryDown()
 print("Fertig ✅")
-
