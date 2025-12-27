@@ -1,5 +1,5 @@
 -- =========================
--- EISEN-TUNNEL TURTLE AUTO 3x3
+-- EISEN-TUNNEL TURTLE AUTO 3x3 (FIXED)
 -- CC: Tweaked
 -- =========================
 
@@ -28,7 +28,7 @@ local ores = {
 
 local steps = 0
 
--- ===== GRABEN =====
+-- ===== GRAB-FUNKTIONEN =====
 local function digForward()
   while turtle.detect() do turtle.dig() sleep(0.1) end
 end
@@ -37,30 +37,36 @@ local function digUp()
   while turtle.detectUp() do turtle.digUp() sleep(0.1) end
 end
 
-local function digSide(turnFunc)
-  turnFunc()
+local function digDownSafe()
+  while turtle.detectDown() do turtle.digDown() sleep(0.1) end
+end
+
+local function digSide(turn)
+  turn()
   digForward()
   turtle.forward()
   digUp()
+  digDownSafe()
   turtle.back()
-  if turnFunc == turtle.turnLeft then
-    turtle.turnRight()
-  else
-    turtle.turnLeft()
-  end
+  if turn == turtle.turnLeft then turtle.turnRight() else turtle.turnLeft() end
 end
 
 -- ===== 3x3 SCHRITT =====
 local function mine3x3Step()
-  -- Mitte
+  -- vorwärts
   digForward()
   turtle.forward()
+
+  -- oben
   digUp()
 
-  -- Links
-  digSide(turtle.turnLeft)
+  -- unten (erst NACH dem ersten Schritt!)
+  if steps > 0 then
+    digDownSafe()
+  end
 
-  -- Rechts
+  -- links + rechts
+  digSide(turtle.turnLeft)
   digSide(turtle.turnRight)
 
   steps = steps + 1
@@ -74,7 +80,6 @@ local function inventoryFull()
   return true
 end
 
--- wirft alles weg, was KEIN Erz ist
 local function dropNonOres()
   for i = 1, 16 do
     turtle.select(i)
@@ -108,7 +113,6 @@ local function refuelFromChest()
   turtle.turnLeft()
   turtle.suck(64)
   turtle.turnRight()
-
   for i = 1, 16 do
     turtle.select(i)
     turtle.refuel()
@@ -124,7 +128,7 @@ local function ensureFuel()
 end
 
 -- ===== START =====
-print("Starte 3x3 Eisen-Tunnel ⛏️")
+print("Starte ECHTEN 3x3 Eisen-Tunnel ⛏️")
 
 for i = 1, TUNNEL_LAENGE do
   mine3x3Step()
