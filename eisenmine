@@ -1,5 +1,6 @@
 -- =========================
--- EISEN-TUNNEL TURTLE AUTO (FIXED)
+-- EISEN-TUNNEL TURTLE AUTO
+-- CC: Tweaked
 -- =========================
 
 local TUNNEL_LAENGE = 200
@@ -52,7 +53,9 @@ end
 -- ===== INVENTAR =====
 local function inventoryFull()
   for i = 1, 16 do
-    if turtle.getItemCount(i) == 0 then return false end
+    if turtle.getItemCount(i) == 0 then
+      return false
+    end
   end
   return true
 end
@@ -114,3 +117,4 @@ end
 goHome()
 dumpOres()
 print("Fertig ✅")
+
